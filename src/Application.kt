@@ -18,9 +18,15 @@ import org.bson.types.ObjectId
 import java.util.Arrays
 
 
-data class CreateTagBody(val name: String)
-data class UpdateTagUserIdsBody(val user_id: String)
-data class RenameTagBody(val name: String)
+data class CreateTagBody(
+  val name: String
+)
+data class UpdateTagUserIdsBody(
+  val user_id: String
+)
+data class RenameTagBody(
+  val name: String
+)
 
 fun main(args: Array<String>): Unit = io.ktor.server.netty.EngineMain.main(args)
 
@@ -55,10 +61,10 @@ fun Application.module(testing: Boolean = false) {
       call.respondText("", contentType = ContentType.Text.Plain)
     }
 
-    get("/user/{id}/tag") {
-      val id = call.parameters["id"]
+    get("/user/{userId}/tag") {
+      val userId = call.parameters["userId"]
       val result = ArrayList<Map<String, Any>>()
-      tags.find(eq("user_id", id))
+      tags.find(eq("user_id", userId))
         .forEach {
           val asMap: Map<String, Any> = mongoDocumentToMap(it)
           result.add(asMap)
@@ -66,63 +72,62 @@ fun Application.module(testing: Boolean = false) {
       call.respond(result)
     }
 
-    post("/user/{id}/tag") {
-      val id = call.parameters["id"]
+    post("/user/{userId}/tag") {
+      val userId = call.parameters["userId"]
       val body = call.receive<CreateTagBody>()
       val doc = Document()
         .append("name", body.name)
-        .append("user_id", id)
+        .append("user_id", userId)
         .append("project_ids", Arrays.asList<String>())
       tags.insertOne(doc)
       call.respond(mongoDocumentToMap(doc))
     }
 
-    put("/user/{id}/tag") {
-      val id = call.parameters["id"]
+    put("/user/{userId}/tag") {
+      val userId = call.parameters["userId"]
       val body = call.receive<UpdateTagUserIdsBody>()
       tags.updateMany(
-        eq("user_id", id),
+        eq("user_id", userId),
         set("user_id", body.user_id)
       )
       call.response.status(HttpStatusCode.NoContent)
-      call.respondText("")
     }
 
-    post("/user/{id}/tag/{tag}/rename") {
-      val id = call.parameters["id"]
-      val tag = call.parameters["tag"]
+    post("/user/{userId}/tag/{tagId}/rename") {
+      val userId = call.parameters["userId"]
+      val tagId = call.parameters["tagId"]
       val body = call.receive<RenameTagBody>()
       tags.updateOne(
-        and(eq("user_id", id), eq("_id", ObjectId(tag))),
+        and(
+          eq("user_id", userId),
+          eq("_id", ObjectId(tagId))
+        ),
         set("name", body.name)
       )
       call.response.status(HttpStatusCode.NoContent)
-      call.respondText("")
     }
 
-    delete("/user/{id}/tag/{tag}") {
-      val id = call.parameters["id"]
-      val tag = call.parameters["tag"]
+    delete("/user/{userId}/tag/{tagId}") {
+      val userId = call.parameters["userId"]
+      val tagId = call.parameters["tagId"]
       tags.deleteOne(
         and(
-          eq("user_id", id),
-          eq("_id", ObjectId(tag))
+          eq("user_id", userId),
+          eq("_id", ObjectId(tagId))
         )
       )
       call.response.status(HttpStatusCode.NoContent)
-      call.respondText("")
     }
 
-    post("/user/{id}/tag/{tag}/project/{project}") {
-      val id = call.parameters["id"]
-      val tag = call.parameters["tag"]
-      val project = call.parameters["project"]
+    post("/user/{userId}/tag/{tagId}/project/{projectId}") {
+      val userId = call.parameters["userId"]
+      val tagId = call.parameters["tagId"]
+      val projectId = call.parameters["projectId"]
       tags.updateOne(
-        and(eq("user_id", id), eq("_id", ObjectId(tag))),
-        addToSet("project_ids", project)
+        and(eq("user_id", userId), eq("_id", ObjectId(tagId))),
+        addToSet("project_ids", projectId)
       )
       call.response.status(HttpStatusCode.NoContent)
-      call.respondText("")
     }
   }
 }
