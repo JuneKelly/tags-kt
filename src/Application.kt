@@ -27,6 +27,9 @@ data class UpdateTagUserIdsBody(
 data class RenameTagBody(
   val name: String
 )
+data class AddProjectToTagNameBody(
+  val name: String
+)
 
 fun main(args: Array<String>): Unit = io.ktor.server.netty.EngineMain.main(args)
 
@@ -126,6 +129,38 @@ fun Application.module(testing: Boolean = false) {
       tags.updateOne(
         and(eq("user_id", userId), eq("_id", ObjectId(tagId))),
         addToSet("project_ids", projectId)
+      )
+      call.response.status(HttpStatusCode.NoContent)
+    }
+
+    post("/user/{userId}/tag/project/{projectId}") {
+      val userId = call.parameters["userId"]
+      val projectId = call.parameters["projectId"]
+      val body = call.receive<AddProjectToTagNameBody>()
+      tags.updateOne(
+        and(eq("user_id", userId), eq("name", body.name)),
+        addToSet("project_ids", projectId)
+      )
+      call.response.status(HttpStatusCode.NoContent)
+    }
+
+    delete("/user/{userId}/tag/{tagId}/project/{projectId}") {
+      val userId = call.parameters["userId"]
+      val tagId = call.parameters["tagId"]
+      val projectId = call.parameters["projectId"]
+      tags.updateOne(
+        and(eq("user_id", userId), eq("_id", ObjectId(tagId))),
+        pull("project_ids", projectId)
+      )
+      call.response.status(HttpStatusCode.NoContent)
+    }
+
+    delete("/user/{userId}/project/{projectId}") {
+      val userId = call.parameters["userId"]
+      val projectId = call.parameters["projectId"]
+      tags.updateMany(
+        eq("user_id", userId),
+        pull("project_ids", projectId)
       )
       call.response.status(HttpStatusCode.NoContent)
     }
