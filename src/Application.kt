@@ -35,7 +35,9 @@ fun Application.module(testing: Boolean = false) {
   }
 
   // Mongo stuff
-  val mongoClient = MongoClients.create("mongodb://localhost:27018")
+  val connection = "mongodb://mongo:27017"
+  // val connection = "mongodb://localhost:27018"
+  val mongoClient = MongoClients.create(connection)
   val db = mongoClient.getDatabase("sharelatex")
   val tags = db.getCollection("tags")
 
