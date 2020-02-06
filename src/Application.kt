@@ -9,14 +9,13 @@ import com.fasterxml.jackson.databind.*
 import io.ktor.jackson.*
 import io.ktor.features.*
 
-import com.mongodb.client.MongoClients;
-import com.mongodb.client.model.Filters.*;
-import com.mongodb.client.model.Updates.*;
+import com.mongodb.client.MongoClients
+import com.mongodb.client.model.Filters.*
+import com.mongodb.client.model.Updates.*
 import org.bson.Document
 import org.bson.types.ObjectId
 
 import java.util.Arrays
-
 
 data class CreateTagBody(
   val name: String
@@ -53,7 +52,7 @@ fun Application.module(testing: Boolean = false) {
   routing {
 
     get("/") {
-      call.respondText("HELLO WORLD!", contentType = ContentType.Text.Plain)
+      call.respondText("TAGS!", contentType = ContentType.Text.Plain)
     }
 
     get("/status") {
@@ -64,6 +63,7 @@ fun Application.module(testing: Boolean = false) {
       call.respondText("", contentType = ContentType.Text.Plain)
     }
 
+    // Get user tags
     get("/user/{userId}/tag") {
       val userId = call.parameters["userId"]
       val result = ArrayList<Map<String, Any>>()
@@ -75,6 +75,7 @@ fun Application.module(testing: Boolean = false) {
       call.respond(result)
     }
 
+    // Create tag
     post("/user/{userId}/tag") {
       val userId = call.parameters["userId"]
       val body = call.receive<CreateTagBody>()
@@ -86,6 +87,7 @@ fun Application.module(testing: Boolean = false) {
       call.respond(mongoDocumentToMap(doc))
     }
 
+    // Update user tag ids
     put("/user/{userId}/tag") {
       val userId = call.parameters["userId"]
       val body = call.receive<UpdateTagUserIdsBody>()
@@ -96,6 +98,7 @@ fun Application.module(testing: Boolean = false) {
       call.response.status(HttpStatusCode.NoContent)
     }
 
+    // Rename tag
     post("/user/{userId}/tag/{tagId}/rename") {
       val userId = call.parameters["userId"]
       val tagId = call.parameters["tagId"]
@@ -110,6 +113,7 @@ fun Application.module(testing: Boolean = false) {
       call.response.status(HttpStatusCode.NoContent)
     }
 
+    // Delete tag
     delete("/user/{userId}/tag/{tagId}") {
       val userId = call.parameters["userId"]
       val tagId = call.parameters["tagId"]
@@ -122,39 +126,52 @@ fun Application.module(testing: Boolean = false) {
       call.response.status(HttpStatusCode.NoContent)
     }
 
+    // Add project to tag
     post("/user/{userId}/tag/{tagId}/project/{projectId}") {
       val userId = call.parameters["userId"]
       val tagId = call.parameters["tagId"]
       val projectId = call.parameters["projectId"]
       tags.updateOne(
-        and(eq("user_id", userId), eq("_id", ObjectId(tagId))),
+        and(
+          eq("user_id", userId),
+          eq("_id", ObjectId(tagId))
+        ),
         addToSet("project_ids", projectId)
       )
       call.response.status(HttpStatusCode.NoContent)
     }
 
+    // Add project to tag name
     post("/user/{userId}/tag/project/{projectId}") {
       val userId = call.parameters["userId"]
       val projectId = call.parameters["projectId"]
       val body = call.receive<AddProjectToTagNameBody>()
       tags.updateOne(
-        and(eq("user_id", userId), eq("name", body.name)),
+        and(
+          eq("user_id", userId),
+          eq("name", body.name)
+        ),
         addToSet("project_ids", projectId)
       )
       call.response.status(HttpStatusCode.NoContent)
     }
 
+    // Remove project from tag
     delete("/user/{userId}/tag/{tagId}/project/{projectId}") {
       val userId = call.parameters["userId"]
       val tagId = call.parameters["tagId"]
       val projectId = call.parameters["projectId"]
       tags.updateOne(
-        and(eq("user_id", userId), eq("_id", ObjectId(tagId))),
+        and(
+          eq("user_id", userId),
+          eq("_id", ObjectId(tagId))
+        ),
         pull("project_ids", projectId)
       )
       call.response.status(HttpStatusCode.NoContent)
     }
 
+    // Remove project from all tags
     delete("/user/{userId}/project/{projectId}") {
       val userId = call.parameters["userId"]
       val projectId = call.parameters["projectId"]
