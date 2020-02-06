@@ -13,14 +13,17 @@ import io.ktor.client.*
 import com.mongodb.ConnectionString;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoClient;
-import com.mongodb.client.model.Filters.eq
+import com.mongodb.client.model.Filters.*;
+import com.mongodb.client.model.Updates.*;
 import org.bson.Document
 import org.bson.types.ObjectId
 
 import java.util.Arrays
 
 
-data class TagBody(val name: String)
+data class CreateTagBody(val name: String)
+data class UpdateTagUserIdsBody(val user_id: String)
+data class RenameTagBody(val name: String)
 
 fun main(args: Array<String>): Unit = io.ktor.server.netty.EngineMain.main(args)
 
@@ -68,13 +71,49 @@ fun Application.module(testing: Boolean = false) {
 
     post("/user/{id}/tag") {
       val id = call.parameters["id"]
-      val body = call.receive<TagBody>()
+      val body = call.receive<CreateTagBody>()
       val doc = Document()
         .append("name", body.name)
         .append("user_id", id)
         .append("project_ids", Arrays.asList<String>())
       tags.insertOne(doc)
       call.respond(mongoDocumentToMap(doc))
+    }
+
+    put("/user/{id}/tag") {
+      val id = call.parameters["id"]
+      val body = call.receive<UpdateTagUserIdsBody>()
+      tags.updateMany(
+        eq("user_id", id),
+        set("user_id", body.user_id)
+      )
+      call.response.status(HttpStatusCode.NoContent)
+      call.respondText("")
+    }
+
+    post("/user/{id}/tag/{tag}/rename") {
+      val id = call.parameters["id"]
+      val tag = call.parameters["tag"]
+      val body = call.receive<RenameTagBody>()
+      tags.updateOne(
+        and(eq("user_id", id), eq("_id", ObjectId(tag))),
+        set("name", body.name)
+      )
+      call.response.status(HttpStatusCode.NoContent)
+      call.respondText("")
+    }
+
+    delete("/user/{id}/tag/{tag}") {
+      val id = call.parameters["id"]
+      val tag = call.parameters["tag"]
+      tags.deleteOne(
+        and(
+          eq("user_id", id),
+          eq("_id", ObjectId(tag))
+        )
+      )
+      call.response.status(HttpStatusCode.NoContent)
+      call.respondText("")
     }
   }
 }
