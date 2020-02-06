@@ -8,11 +8,8 @@ import io.ktor.http.*
 import com.fasterxml.jackson.databind.*
 import io.ktor.jackson.*
 import io.ktor.features.*
-import io.ktor.client.*
 
-import com.mongodb.ConnectionString;
 import com.mongodb.client.MongoClients;
-import com.mongodb.client.MongoClient;
 import com.mongodb.client.model.Filters.*;
 import com.mongodb.client.model.Updates.*;
 import org.bson.Document
@@ -111,6 +108,18 @@ fun Application.module(testing: Boolean = false) {
           eq("user_id", id),
           eq("_id", ObjectId(tag))
         )
+      )
+      call.response.status(HttpStatusCode.NoContent)
+      call.respondText("")
+    }
+
+    post("/user/{id}/tag/{tag}/project/{project}") {
+      val id = call.parameters["id"]
+      val tag = call.parameters["tag"]
+      val project = call.parameters["project"]
+      tags.updateOne(
+        and(eq("user_id", id), eq("_id", ObjectId(tag))),
+        addToSet("project_ids", project)
       )
       call.response.status(HttpStatusCode.NoContent)
       call.respondText("")
